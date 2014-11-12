@@ -219,7 +219,11 @@ public class FreemarkerHttpServlet extends VitroHttpServlet  {
     protected ResponseValues processRequest(VitroRequest vreq) throws Exception {
         return null;
     }
-       
+    
+    protected ResponseValues processRequest(HttpServletRequest vreq) throws Exception {
+        return null;
+    }
+    
     protected void doResponse(VitroRequest vreq, HttpServletResponse response, 
             ResponseValues values) throws TemplateProcessingException {
         try {

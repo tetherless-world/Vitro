@@ -38,6 +38,7 @@ import edu.cornell.mannlib.vitro.webapp.utils.dataGetter.ExecuteDataRetrieval;
 import edu.cornell.mannlib.vitro.webapp.web.beanswrappers.ReadOnlyBeansWrapper;
 import edu.cornell.mannlib.vitro.webapp.web.templatemodels.individual.IndividualTemplateModel;
 import edu.cornell.mannlib.vitro.webapp.web.templatemodels.individuallist.ListedIndividual;
+import edu.rpi.twc.dcods.vivo.ServerInfo;
 import edu.ucsf.vitro.opensocial.OpenSocialManager;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.TemplateModel;
@@ -66,7 +67,8 @@ class IndividualResponseBuilder {
 	private final ExecuteDataRetrieval eDataRetrieval;
 
 	private final Individual individual;
-	
+	private static String dcoOntoNamespace = ServerInfo.getInstance().getDcoOntoNamespace();
+	private static String predicateDcoID = dcoOntoNamespace+"dcoId";
 	public IndividualResponseBuilder(VitroRequest vreq, Individual individual) {
 		this.vreq = vreq;
 		this.wadf = vreq.getWebappDaoFactory();
@@ -81,6 +83,10 @@ class IndividualResponseBuilder {
 	ResponseValues assembleResponse() throws TemplateModelException {
 		Map<String, Object> body = new HashMap<String, Object>();
 		
+		Individual dcoId = individual.getRelatedIndividual("http://info.deepcarbon.net/schema#hasDcoId");
+		if (dcoId != null) {	
+			body.put("dcoId", dcoId.getRdfsLabel());
+		}
 		body.put("title", individual.getName());            
 		body.put("relatedSubject", getRelatedSubject());
 		body.put("namespaces", namespaces);

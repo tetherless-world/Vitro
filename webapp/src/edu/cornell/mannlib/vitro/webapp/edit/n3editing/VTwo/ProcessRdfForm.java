@@ -2,31 +2,48 @@
 
 package edu.cornell.mannlib.vitro.webapp.edit.n3editing.VTwo;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
+import org.apache.commons.httpclient.URIException;
+import org.apache.commons.httpclient.util.URIUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONObject;
 
 import com.hp.hpl.jena.ontology.OntModel;
 import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.NodeIterator;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.ResIterator;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
 import com.hp.hpl.jena.shared.Lock;
+import com.hp.hpl.jena.vocabulary.RDF;
 
 import edu.cornell.mannlib.vitro.webapp.controller.VitroRequest;
 import edu.cornell.mannlib.vitro.webapp.dao.InsertException;
 import edu.cornell.mannlib.vitro.webapp.dao.jena.DependentResourceDeleteJena;
 import edu.cornell.mannlib.vitro.webapp.dao.jena.event.EditEvent;
 import edu.cornell.mannlib.vitro.webapp.edit.n3editing.configuration.EditConfigurationConstants;
-import edu.cornell.mannlib.vitro.webapp.edit.n3editing.controller.ProcessRdfFormController.Utilities;
+
+import edu.rpi.twc.dcods.vivo.DCOId;
+import edu.rpi.twc.dcods.vivo.ServerInfo;
 
 /**
  * The goal of this class is to provide processing from 
@@ -75,13 +92,58 @@ public class ProcessRdfForm {
         log.debug("configuration:\n" + configuration.toString());
         log.debug("submission:\n" + submission.toString());
         
+        
+        //applyEditSubmissionPreprocessors( configuration, submission, vreq );
         applyEditSubmissionPreprocessors( configuration, submission, vreq );
+
+        AdditionsAndRetractions changes;
+        if( configuration.isUpdate() ){
+            //System.out.println("Edit exsiting ones");
+            changes = editExistingStatements(configuration, submission);
+            //System.out.println(changes.toString());
+        } else {
+            //System.out.println("Create new ones");
+            changes = createNewStatements(configuration, submission );
+            //System.out.println(changes.toString());
+
+            /* DCO-ID generation, by Han Wang (wangh17@rpi.edu) */
+            generateDcoIdN3(changes, submission);
+	        /* End of DCO-ID generation */
+        }   
+
+        changes = getMinimalChanges(changes);      
+        logChanges( configuration, changes);        
+        
+        return changes;
+    }
+    
+    public AdditionsAndRetractions  process(
+            EditConfigurationVTwo configuration,
+            MultiValueEditSubmission submission) 
+    throws Exception{  
+        log.debug("configuration:\n" + configuration.toString());
+        log.debug("submission:\n" + submission.toString());
+        
+        //System.out.println("Configurations:");
+        //System.out.println(configuration.toString());
+        //System.out.println("Submissions:");
+        //System.out.println(submission.toString());
+
+        applyEditSubmissionPreprocessors( configuration, submission );
         
         AdditionsAndRetractions changes;
         if( configuration.isUpdate() ){
+            //System.out.println("Edit exsiting ones");
             changes = editExistingStatements(configuration, submission);
+            //System.out.println(changes.toString());
         } else {
+            //System.out.println("Create new ones");
             changes = createNewStatements(configuration, submission );
+            //System.out.println(changes.toString());
+
+		    /* DCO-ID generation, by Han Wang (wangh17@rpi.edu) */
+            generateDcoIdN3(changes, submission);
+	        /* End of DCO-ID generation */
         }       
 
         changes = getMinimalChanges(changes);      
@@ -89,6 +151,114 @@ public class ProcessRdfForm {
         
         return changes;
     }
+    
+    /* DCO-ID N3 generation, by Han Wang (wangh17@rpi.edu) */
+    private void generateDcoIdN3(AdditionsAndRetractions changes, MultiValueEditSubmission submission) {
+    	String dcoIdClassStr = ServerInfo.getInstance().getDcoOntoNamespace() + "DCOID";
+        String hasDcoIdPropertyStr = ServerInfo.getInstance().getDcoOntoNamespace() + "hasDcoId";
+        String dcoIdForPropertyStr = ServerInfo.getInstance().getDcoOntoNamespace() + "dcoIdFor";
+        Resource dcoIdClass = ResourceFactory.createResource(dcoIdClassStr);
+        Property hasDcoIdProperty = ResourceFactory.createProperty(hasDcoIdPropertyStr);
+        Property dcoIdForProperty = ResourceFactory.createProperty(dcoIdForPropertyStr);
+        Property rdfsLabelProperty = ResourceFactory.createProperty("http://www.w3.org/2000/01/rdf-schema#label");
+
+        List<String> existingUris = new ArrayList<String>();
+        Map<String, List<String>> UrisFromForm = submission.getUrisFromForm();
+        for (Map.Entry<String, List<String>> entry : UrisFromForm.entrySet()) {
+            String key = entry.getKey();
+            if (key.contains("existing")) {
+            	for (String uri : entry.getValue()) {
+                	existingUris.add(uri);
+                }
+            }
+        }
+
+        Model additions = changes.getAdditions();
+        ResIterator subjectItr = additions.listResourcesWithProperty(RDF.type);
+        Resource subj;
+        while (subjectItr.hasNext()) {
+            subj = subjectItr.next();
+            if (!existingUris.contains(subj.toString())) {
+                NodeIterator typeItr = additions.listObjectsOfProperty(subj, RDF.type);
+                Resource type;
+                while(typeItr.hasNext()) {
+                    type = typeItr.next().asResource();
+                    if (checkTypeAgainstTripleStore(type.toString())) {
+                       	try {
+                            DCOId dcoid = new DCOId();
+                            dcoid.operate(subj.toString(), "URL", "create");
+                            String dcoIdStr = dcoid.getDCOId();
+                            String dcoIdLabelStr = dcoIdStr.substring(25);
+                            Resource dcoId = ResourceFactory.createResource(dcoIdStr);
+                            Literal dcoIdLabel = ResourceFactory.createPlainLiteral(dcoIdLabelStr);
+	                        additions.add(additions.createStatement(dcoId, RDF.type, dcoIdClass));
+	                        additions.add(additions.createStatement(dcoId, rdfsLabelProperty, dcoIdLabel));
+	                        additions.add(additions.createStatement(dcoId, dcoIdForProperty, subj));
+	                        additions.add(additions.createStatement(subj, hasDcoIdProperty, dcoId));
+	                        break;
+                        } catch (Exception e) {
+                        	e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
+        //System.out.println("With DCO-IDs:");
+        //System.out.println(changes.toString());
+    }
+    
+    /* Check the type of an individual, by Han Wang (wangh17@rpi.edu) */
+    private boolean checkTypeAgainstTripleStore(String type) {
+    	String endpoint = "http://info.deepcarbon.net/endpoint";
+    	String queryStr = 
+    			"PREFIX dco: <" + ServerInfo.getInstance().getDcoOntoNamespace() + "> " +
+    			"ASK { <" + type + "> <http://www.w3.org/2000/01/rdf-schema#subClassOf> dco:Object }";
+    	String encodedQuery = new String();
+		try {
+			encodedQuery = URIUtil.encodeQuery(queryStr);
+		} catch (URIException e1) {
+			e1.printStackTrace();
+		}
+		String outputFormat = "&output=json";
+		String url = endpoint + "/sparql?query=" + encodedQuery + outputFormat;
+		HttpClient client = new DefaultHttpClient();
+		HttpGet request = new HttpGet(url);
+		HttpResponse response;
+		BufferedReader bufferedReader;
+		boolean result = true;
+		try {
+			response = client.execute(request);
+			HttpEntity entity = response.getEntity();
+			if (entity != null) {
+				InputStream inputStream = entity.getContent();
+	            		bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+	           		StringBuilder builder = new StringBuilder();
+	            		for (String line = null; (line = bufferedReader.readLine()) != null;) {
+	                		builder.append(line).append("\n");
+	            		}
+	            		JSONObject jsonObject = new JSONObject(builder.toString());
+	            		result = jsonObject.getBoolean("boolean");
+	            		bufferedReader.close();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+	        	client.getConnectionManager().shutdown();
+	    	}
+	return result;
+    }
+ 
+    private void applyEditSubmissionPreprocessors(
+            EditConfigurationVTwo configuration, MultiValueEditSubmission submission) {
+        List<EditSubmissionVTwoPreprocessor> preprocessors = configuration.getEditSubmissionPreprocessors();
+        if(preprocessors != null) {
+            for(EditSubmissionVTwoPreprocessor p: preprocessors) {
+                p.preprocess(submission);
+            }
+        }
+    }
+    
+    
     
     /** 
      * Processes an EditConfiguration for to create a new statement or a 
@@ -176,7 +346,13 @@ public class ProcessRdfForm {
         List<String> URLToReturnTo = Arrays.asList(submission.getEntityToReturnTo());
         
         /* *********** Check if new resource needs to be forcibly created ******** */
-        urisForNewResources = URIsForNewRsources(editConfig, newURIMaker);
+        //urisForNewResources = URIsForNewRsources(editConfig, newURIMaker);
+        /**
+         * Edit by momo, cheny18
+         * Can't create new resources due to submission:newResources not changed;add submission parameter to reflect the change. 
+         */
+        urisForNewResources = URIsForNewRsources(editConfig, newURIMaker,submission);
+
         substituteInForcedNewURIs(urisForNewResources, submission.getUrisFromForm(), requiredAsserts, optionalAsserts, URLToReturnTo);
         logSubstitue( "Added form URIs that required new URIs", requiredAsserts, optionalAsserts, requiredRetracts, optionalRetracts);
 
@@ -392,7 +568,7 @@ public class ProcessRdfForm {
    
    //Note this would require more analysis in context of multiple URIs
    public Map<String,String> URIsForNewRsources(
-           EditConfigurationVTwo configuration, NewURIMaker newURIMaker) 
+           EditConfigurationVTwo configuration, NewURIMaker newURIMaker,MultiValueEditSubmission submission) 
            throws InsertException {       
        Map<String,String> newResources = configuration.getNewResources();
        
@@ -402,6 +578,11 @@ public class ProcessRdfForm {
            String uri = newURIMaker.getUnusedNewURI(prefix);                        
            varToNewURIs.put(key, uri);  
        }   
+       /**
+        * Edit by momo, cheny18
+        * Need this line to reflect changes in submission object
+        */
+       submission.setNewIndividualURI(varToNewURIs);
        log.debug( "URIs for new resources: " + varToNewURIs );
        return varToNewURIs;
    }

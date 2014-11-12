@@ -48,6 +48,11 @@
                     <span id="iconControlsVitro"><img id="uriIcon" title="${individual.uri}" class="middle" src="${urls.images}/individual/uriIcon.gif" alt="uri icon"/></span>
                 </h1>
             </#if>
+	    <#if dcoId??>
+            	<h2 id="dcoId">
+            	    DCO ID <a href="http://dx.deepcarbon.net/${dcoId!}" target="_blank" title="DCO-ID">${dcoId!}</a>
+            	</h2>
+            </#if>
         </header>
                 
     <#if individualProductExtension??>

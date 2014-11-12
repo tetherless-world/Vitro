@@ -242,6 +242,7 @@ public class NewIndividualFormGenerator implements EditConfigurationGenerator {
     	//Here, retrieve model from 
 		OntModel model = ModelAccess.on(session.getServletContext()).getJenaOntModel();
     	//This form is always doing a non-update
+		System.out.println("New individual gen");
     	editConfiguration.prepareForNonUpdate( model );
 	      
     }

@@ -5,3 +5,6 @@
 <#if errorMessage??>
     <p>${errorMessage}</p>
 </#if>
+<#if link??>
+    <p><a href="${link}" target="_blank">${linkLabel}</a></p>
+</#if>

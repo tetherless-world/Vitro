@@ -226,6 +226,7 @@ public class ManagePageGenerator extends BaseEditConfigurationGenerator implemen
 	        }
 	         else{
 	            //if no subject uri, this is creating a new page
+	        	 System.out.println("manage page gen");
 	            editConfig.prepareForNonUpdate(queryModel);
 	        }
 	    }     

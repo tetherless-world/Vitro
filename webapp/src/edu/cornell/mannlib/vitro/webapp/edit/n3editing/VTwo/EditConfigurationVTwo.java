@@ -730,6 +730,20 @@ public class EditConfigurationVTwo {
     }
 
     /**
+     * This may return null, which indicates that there is no editKey or EditConfiguration in the
+     * request or session.  If the queryParams are supplied, look for the editKey
+     * there first since multipart parsing might have cleared them from the request.
+     */
+    public static EditConfigurationVTwo getConfigFromSession( HttpSession sess, HttpServletRequest request, String editKey){
+		
+        String key = editKey;
+     
+        if( key == null )
+            return null;
+        return getConfigFromSession(sess, key);
+    }
+    
+    /**
      * The editKey can be a HTTP query parameter or it can be a request attribute.
      */
     public static String getEditKeyFromRequest( ServletRequest request){

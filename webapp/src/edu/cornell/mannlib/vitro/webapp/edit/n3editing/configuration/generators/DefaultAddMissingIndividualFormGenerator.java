@@ -366,6 +366,7 @@ public class DefaultAddMissingIndividualFormGenerator implements EditConfigurati
 	    		editConfiguration.prepareForObjPropUpdate(model);
 	    	}  else {
 	    		//new object to be created
+	    		System.out.println("Default add missing gen");
 	            editConfiguration.prepareForNonUpdate( model );
 	        }
     	} else {

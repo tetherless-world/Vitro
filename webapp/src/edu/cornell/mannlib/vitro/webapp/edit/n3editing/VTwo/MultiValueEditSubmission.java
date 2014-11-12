@@ -48,6 +48,16 @@ public class MultiValueEditSubmission {
         literalCreationModel = ModelFactory.createDefaultModel();
     }
     
+    private HashMap<String,String> newIndividualURI;
+    
+    public void setNewIndividualURI (HashMap<String,String> newFociblyCreatedIndividualURI) {
+    	this.newIndividualURI = newFociblyCreatedIndividualURI;
+    }
+    
+    public HashMap<String,String> getNewIndividualURI () {
+    	return newIndividualURI;
+    }
+    
     public MultiValueEditSubmission(Map<String,String[]> queryParameters,  EditConfigurationVTwo editConfig){
         if( editConfig == null )
             throw new Error("EditSubmission needs an EditConfiguration");            

@@ -49,6 +49,8 @@ public class ManagePagePreprocessor extends
 		editConfiguration = editConfig;
 	}
 
+	public void preprocess(MultiValueEditSubmission inputSubmission) {
+        }
 	public void preprocess(MultiValueEditSubmission inputSubmission, VitroRequest vreq) {
 		submission = inputSubmission;
 		// Get the input elements for concept node and concept label as well

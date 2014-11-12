@@ -37,6 +37,8 @@ public class ManageLabelsForIndividualPreprocessor extends BaseEditSubmissionPre
 		
 	}
 	
+	public void preprocess(MultiValueEditSubmission inputSubmission) {
+        }
 	@Override
 	public void preprocess(MultiValueEditSubmission inputSubmission, VitroRequest vreq) {
 		//Check and see if a language was selected by the user, and this is the regular label submission

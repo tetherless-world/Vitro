@@ -479,6 +479,7 @@ public class DefaultObjectPropertyFormGenerator implements EditConfigurationGene
 	    		editConfiguration.prepareForObjPropUpdate(model);
 	    	}  else {
 	    		//new object to be created
+	    		System.out.println("Default object gen");
 	            editConfiguration.prepareForNonUpdate( model );
 	        }
     	} else {

@@ -447,9 +447,7 @@ public class DataPropertyStatementDaoJena extends JenaBaseDao implements DataPro
             while (results.hasNext()) {
                 QuerySolution sol = results.next();
                 Literal value = sol.getLiteral("value");
-                if(value != null) {
-                    values.add(value);
-                }
+                values.add(value);
             }
             log.debug("values = " + values);
             return values;  

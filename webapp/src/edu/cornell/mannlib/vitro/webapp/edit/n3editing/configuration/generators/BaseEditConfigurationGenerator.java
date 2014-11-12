@@ -81,6 +81,7 @@ public abstract class BaseEditConfigurationGenerator implements EditConfiguratio
             editConfig.prepareForDataPropUpdate(queryModel, vreq.getWebappDaoFactory().getDataPropertyDao());
         } else{
             //this might be a create new or a form
+        	System.out.println("Base Edit gen");
             editConfig.prepareForNonUpdate(queryModel);
         }
     }     
