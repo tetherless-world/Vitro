@@ -19,7 +19,7 @@ import org.json.JSONObject;
 
 public class SparqlQueryUtils {
 	
-	public static final String endpoint = "http://info.deepcarbon.net/endpoint";
+	public static final String endpoint = "https://info.deepcarbon.net/endpoint";
 	public static final String vivoSparqlUpdateAPI = "http://128.213.3.13:8080/vivo/api/sparqlUpdate";
 	
 	public static JSONArray vivoSparqlSelect(String sparqlQuery) {
