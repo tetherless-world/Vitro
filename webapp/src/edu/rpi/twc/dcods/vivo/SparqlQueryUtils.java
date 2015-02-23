@@ -40,12 +40,14 @@ public class SparqlQueryUtils {
 		}
 		String outputFormat = "&output=json";
 		String url = endpoint + "/sparql?query=" + encodedQuery + outputFormat;
+		/*
 		HttpClient client = new DefaultHttpClient();
 		HttpGet request = new HttpGet(url);
-		HttpResponse response;
-		BufferedReader bufferedReader;
+		*/
+		
 		JSONArray results = new JSONArray();
 		try {
+			/*
 			response = client.execute(request);
 			HttpEntity entity = response.getEntity();
 			if (entity != null) {
@@ -55,15 +57,35 @@ public class SparqlQueryUtils {
 	            		for (String line = null; (line = bufferedReader.readLine()) != null;) {
 	                		builder.append(line).append("\n");
 	            		}
-	            		JSONObject jsonObject = new JSONObject(builder.toString());
-	            		results = jsonObject.getJSONObject("results").getJSONArray("bindings");
-	            		bufferedReader.close();
-			}
+	            		*/
+			URL obj = new URL(url);
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+            // optional default is GET
+            con.setRequestMethod("GET");
+            //add request header
+            con.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer builder = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                builder.append(inputLine).append("\n");
+            }
+            in.close();	
+	            
+            //System.out.println("SPARQL Select:");
+            //System.out.println(builder.toString());
+            
+    		JSONObject jsonObject = new JSONObject(builder.toString());
+    		results = jsonObject.getJSONObject("results").getJSONArray("bindings");
+			//}
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-	        	client.getConnectionManager().shutdown();
-	    	}
+	    }
 	return results;
     }
 	
@@ -78,12 +100,14 @@ public class SparqlQueryUtils {
 		}
 		String outputFormat = "&output=json";
 		String url = endpoint + "/sparql?query=" + encodedQuery + outputFormat;
+		
 		HttpClient client = new DefaultHttpClient();
-		HttpGet request = new HttpGet(url);
+		//HttpGet request = new HttpGet(url);
 		HttpResponse response;
 		BufferedReader bufferedReader;
 		boolean result = Boolean.FALSE;
 		try {
+			/*
 			response = client.execute(request);
 			HttpEntity entity = response.getEntity();
 			if (entity != null) {
@@ -93,10 +117,31 @@ public class SparqlQueryUtils {
 	            		for (String line = null; (line = bufferedReader.readLine()) != null;) {
 	                		builder.append(line).append("\n");
 	            		}
-	            		JSONObject jsonObject = new JSONObject(builder.toString());
-	            		result = Boolean.parseBoolean(jsonObject.getString("boolean"));
-	            		bufferedReader.close();
-			}
+	            		*/
+			URL obj = new URL(url);
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+            // optional default is GET
+            con.setRequestMethod("GET");
+            //add request header
+            con.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer builder = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                builder.append(inputLine).append("\n");
+            }
+            in.close();
+	            		
+            //System.out.println("SPARQL Ask:");
+            //System.out.println(builder.toString());
+            
+    		JSONObject jsonObject = new JSONObject(builder.toString());
+    		result = Boolean.parseBoolean(jsonObject.getString("boolean"));
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
