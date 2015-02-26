@@ -98,9 +98,12 @@ public class AddPublicationUsingDOIStepOneController extends EditRequestDispatch
 				
 				Map<String, Object> metadataMap = parsePublicationMetadataJSONObject(metadata);
 				ArrayList<HashMap<String, Object>> authors = (ArrayList<HashMap<String, Object>>) metadataMap.get("authors");
-				for (HashMap<String, Object> author : authors) {
-					matchAuthor(author);
+				if(authors!=null){
+					for (HashMap<String, Object> author : authors) {
+						matchAuthor(author);
+					}
 				}
+				
 				HashMap<String, Object> venue = (HashMap<String, Object>) metadataMap.get("venue");
 				matchVenue(venue);
 				
@@ -162,8 +165,6 @@ public class AddPublicationUsingDOIStepOneController extends EditRequestDispatch
             }
             in.close();
             
-            System.out.println("Step One:");
-			System.out.println(builder.toString());
 			if (builder.toString().startsWith("{")) {
 				JSONTokener tokener = new JSONTokener(builder.toString());
 				JSONObject json = new JSONObject(tokener);
@@ -182,8 +183,7 @@ public class AddPublicationUsingDOIStepOneController extends EditRequestDispatch
 			e.printStackTrace();
 			metadata = null;
 		}
-		System.out.println("Metadata:");
-		System.out.println(metadata.toString());
+		System.out.println(metadata);
 		return metadata;
 	}
 	
@@ -206,6 +206,9 @@ public class AddPublicationUsingDOIStepOneController extends EditRequestDispatch
 		else metadata.put("titles", null);
 		// Authors
 		if (json.has("author")) metadata.put("authors", getAuthorsFromJSON(json));
+		else metadata.put("authors", null);
+		// Sometime there is no field of authors but editors
+		if (json.has("editors")) metadata.put("authors", getEditorsFromJSON(json));
 		else metadata.put("authors", null);
 		// Venue
 		if (json.has("container-title")) metadata.put("venue", getVenuesFromJSON(json));
@@ -231,6 +234,26 @@ public class AddPublicationUsingDOIStepOneController extends EditRequestDispatch
 			}
 		} else titles = null;
 		return titles;
+	}
+	
+	private ArrayList<HashMap<String, Object>> getEditorsFromJSON(JSONObject json) {
+		ArrayList<HashMap<String, Object>> editors = new ArrayList<HashMap<String, Object>> ();
+		if (!json.isNull("editors")) {
+			try {
+				JSONArray arr = json.getJSONArray("editors");
+				for (int i = 0; i < arr.length(); i++) {
+					JSONObject authorJson = arr.getJSONObject(i);
+					HashMap<String, Object> editor = new HashMap<String, Object> ();
+					editor.put("family", authorJson.getString("family"));
+					editor.put("given", authorJson.getString("given"));
+					editors.add(editor);
+				}
+			} catch (JSONException e) {
+				editors = null;
+				e.printStackTrace();
+			}
+		} else editors = null;
+		return editors;
 	}
 	
 	private ArrayList<HashMap<String, Object>> getAuthorsFromJSON(JSONObject json) {
