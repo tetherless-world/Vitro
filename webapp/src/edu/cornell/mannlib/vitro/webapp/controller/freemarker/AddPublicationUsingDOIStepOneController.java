@@ -209,7 +209,8 @@ public class AddPublicationUsingDOIStepOneController extends EditRequestDispatch
 		else metadata.put("authors", null);
 		// Sometime there is no field of authors but editors
 		if (json.has("editors")) metadata.put("authors", getEditorsFromJSON(json));
-		else metadata.put("authors", null);
+        //Commented out by pwest 20150226 - if there are authors but no editors then we nulled out the authors
+		//else metadata.put("authors", null);
 		// Venue
 		if (json.has("container-title")) metadata.put("venue", getVenuesFromJSON(json));
 		else metadata.put("venue", null);
